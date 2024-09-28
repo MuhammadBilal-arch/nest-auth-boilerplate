@@ -1,6 +1,7 @@
 // src/auth/dto/login.dto.ts
-import { IsString } from 'class-validator';
+import { IsString, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Role } from '@prisma/client'; 
 
 export class LoginDto {
   @ApiProperty({
@@ -16,4 +17,11 @@ export class LoginDto {
   })
   @IsString()
   password: string;
+
+  @ApiProperty({
+    example: 'USER | MODERATOR | ADMIN | SUPER_ADMIN ', // Set an example value for Swagger documentation
+    description: 'The role of the user',
+  })
+  @IsEnum(Role, { message: 'Role must be either USER or ADMIN' }) // Validate the role field
+  role: Role;
 }

@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';  
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { Role } from '@prisma/client';
+import { LoginDto } from './dto/login.dto';
 
 
 @Injectable()
@@ -15,7 +17,7 @@ export class AuthService {
 
     // Check if user exists and password matches
     if (user && await bcrypt.compare(loginDto.password, user.password)) {
-      const payload = { username: user.username, id: user.id };
+      const payload = { username: user.username, id: user.id , role : user.role };
       const accessToken = this.jwtService.sign(payload);
       return { message: 'Login successful', accessToken , user };
     } else {
@@ -23,16 +25,17 @@ export class AuthService {
     }
   }
 
-  async register(registerDto: { username: string; password: string }) {
+  async register(registerDto: LoginDto) {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
     try {
       const user = await this.prisma.user.create({
         data: {
           username: registerDto.username,
           password: hashedPassword,
+          role: registerDto.role,
         },
       });
-      const payload = { username: user.username, sub: user.id };
+      const payload = { username: user.username, id: user.id , role: user.role };
       const accessToken = this.jwtService.sign(payload);
       return { message: 'User registered successfully', accessToken, user };
     } catch (error) {

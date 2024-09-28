@@ -1,12 +1,14 @@
 // src/user/user.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Req } from '@nestjs/common';
 import { UserService } from './users.service';
 import { CreateUserDto } from './dto/create.user.dto';
 import { UpdateUserDto } from './dto/update.user.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/jwt.auth.guard';
+import { RolesGuard } from '../authorization/roles.guard';
+import { Roles } from 'src/authorization/roles.decorators';
 
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard,RolesGuard)
 @ApiBearerAuth('access-token') // This will tell Swagger to include the Bearer token
 @ApiTags('users') // Tag the controller for Swagger
 @Controller('users')
@@ -14,10 +16,21 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('list')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'List of users' })
   findAll() {
     return this.userService.findAll();
+  }
+
+  @Get('profile')
+  @ApiOperation({ summary: 'Get a user by ID' })
+  @ApiResponse({ status: 200, description: 'User found' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  getProfile(@Req() req: Request) {
+    console.log(req['user'])
+    const userId = req['user']['id']; // Assuming your JWT payload includes userId
+    return this.userService.findOne(userId);
   }
 
   @Get(':id')
