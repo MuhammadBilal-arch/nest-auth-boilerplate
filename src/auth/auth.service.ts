@@ -1,14 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';  
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Role } from '@prisma/client';
 import { LoginDto } from './dto/login.dto';
 
-
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService , private readonly jwtService: JwtService) {}  // Inject PrismaService
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {} // Inject PrismaService
 
   async login(loginDto: { username: string; password: string }) {
     const user = await this.prisma.user.findUnique({
@@ -16,17 +18,33 @@ export class AuthService {
     });
 
     // Check if user exists and password matches
-    if (user && await bcrypt.compare(loginDto.password, user.password)) {
-      const payload = { username: user.username, id: user.id , role : user.role };
-      const accessToken = this.jwtService.sign(payload);
-      return { message: 'Login successful', accessToken , user };
-    } else {
-      throw new Error('Invalid credentials');
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.UNAUTHORIZED);
     }
+
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
+    if (!isPasswordValid) {
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+
+    const payload = { username: user.username, id: user.id, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+    return { message: 'Login successful', accessToken, user };
   }
 
   async register(registerDto: LoginDto) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { username: registerDto.username },
+    });
+  
+    if (existingUser) {
+      throw new HttpException('Username already exists', HttpStatus.BAD_REQUEST);
+    }
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+
     try {
       const user = await this.prisma.user.create({
         data: {
@@ -35,15 +53,16 @@ export class AuthService {
           role: registerDto.role,
         },
       });
-      const payload = { username: user.username, id: user.id , role: user.role };
+      const payload = { username: user.username, id: user.id, role: user.role };
       const accessToken = this.jwtService.sign(payload);
       return { message: 'User registered successfully', accessToken, user };
     } catch (error) {
-      // Handle unique constraint violation for username
-      if (error.code === 'P2002') {
-        throw new Error('Username already exists');
+      if (error.code === 'P2002') { // Prisma unique constraint violation
+        throw new HttpException('Username already exists', HttpStatus.BAD_REQUEST);
       }
-      throw error;
+      // Log the error for debugging (optional)
+      console.error('Error during registration:', error);
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

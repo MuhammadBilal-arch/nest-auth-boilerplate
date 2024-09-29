@@ -6,13 +6,18 @@ import {
   } from '@nestjs/common';
   import { JwtService } from '@nestjs/jwt'; 
   import { Request } from 'express';
+  import { GqlExecutionContext } from '@nestjs/graphql'; // Import for GraphQL context
   
   @Injectable()
   export class AuthGuard implements CanActivate {
     constructor(private jwtService: JwtService) {}
   
     async canActivate(context: ExecutionContext): Promise<boolean> {
-      const request = context.switchToHttp().getRequest();
+      const isGraphQL = context.getType().toString() === 'graphql';
+      const request = isGraphQL
+        ? GqlExecutionContext.create(context).getContext().req  // Extract request in GraphQL
+        : context.switchToHttp().getRequest();  // Standard HTTP request
+  
       const token = this.extractTokenFromHeader(request);
       console.log('token', token);
       if (!token) {

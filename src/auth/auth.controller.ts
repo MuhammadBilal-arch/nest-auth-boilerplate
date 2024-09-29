@@ -2,6 +2,7 @@ import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 
 @ApiTags('auth') // Tag the controller for Swagger
 @Controller('auth')
@@ -21,7 +22,7 @@ export class AuthController {
   @ApiOperation({ summary: 'User registration' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request' })
-  register(@Body() registerDto: LoginDto) {
+  register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 }

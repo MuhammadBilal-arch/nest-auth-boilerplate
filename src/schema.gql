@@ -1,0 +1,44 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type User {
+  id: Int!
+  username: String!
+  role: Role!
+  password: String!
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+type Query {
+  findAll: [User!]!
+  findOne(id: Float!): User
+}
+
+type Mutation {
+  createUser(createUserDto: CreateUserDto!): User!
+  update(id: Float!, updateUserDto: UpdateUserDto!): User
+  remove(id: Float!): User
+}
+
+input CreateUserDto {
+  """The username of the user"""
+  username: String!
+
+  """The password of the user"""
+  password: String!
+
+  """The role of the user"""
+  role: Role!
+}
+
+input UpdateUserDto {
+  username: String!
+  password: String!
+}
